@@ -1,0 +1,1848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DoDispatch — Say what your heart couldn't.</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0a0a0f;
+    --ash: #111118;
+    --mist: #1a1a26;
+    --silver: #c8c8d8;
+    --ghost: rgba(200,200,216,0.08);
+    --glow: #e8c97a;
+    --warm: #f0a060;
+    --pulse: #7eb8f7;
+    --white: #f4f4f8;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; scroll-snap-type: y mandatory; }
+
+  body {
+    background: var(--ink);
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    overflow-x: hidden;
+    cursor: default;
+  }
+
+  /* ── GRAIN OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 9999; pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    opacity: 0.35;
+  }
+
+  /* ── SCENE BASE ── */
+  .scene {
+    min-height: 100vh;
+    scroll-snap-align: start;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+    padding: 80px 40px;
+  }
+
+  /* ── SCENE 1 – PROBLEM ── */
+  #scene1 {
+    background: radial-gradient(ellipse at 30% 60%, #1a0f0f 0%, var(--ink) 70%);
+  }
+
+  .room-ambience {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 300px 400px at 20% 40%, rgba(255,140,60,0.06) 0%, transparent 70%),
+      radial-gradient(ellipse 200px 200px at 75% 80%, rgba(100,120,255,0.04) 0%, transparent 60%);
+    animation: breathe 6s ease-in-out infinite;
+  }
+
+  @keyframes breathe {
+    0%,100% { opacity: 0.7; }
+    50% { opacity: 1; }
+  }
+
+  .scene1-content {
+    position: relative; z-index: 2;
+    max-width: 900px; width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: center;
+  }
+
+  .phone-mockup {
+    width: 240px;
+    background: #0e0e16;
+    border-radius: 36px;
+    border: 1px solid rgba(255,255,255,0.08);
+    padding: 28px 20px;
+    box-shadow: 0 40px 100px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04), inset 0 1px 0 rgba(255,255,255,0.06);
+    margin: 0 auto;
+    position: relative;
+  }
+
+  .phone-mockup::before {
+    content: '';
+    position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+    width: 60px; height: 4px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 2px;
+  }
+
+  .chat-header {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 20px; padding-bottom: 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: linear-gradient(135deg, #3a2060, #604080);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.7);
+  }
+
+  .chat-name { font-size: 12px; color: var(--silver); font-weight: 500; }
+  .chat-status { font-size: 10px; color: rgba(200,200,216,0.4); margin-top: 2px; }
+
+  .old-messages { margin-bottom: 16px; }
+
+  .msg-bubble {
+    max-width: 80%; margin-bottom: 8px;
+    padding: 8px 12px; border-radius: 16px;
+    font-size: 11px; line-height: 1.5; color: var(--silver);
+  }
+
+  .msg-bubble.them {
+    background: rgba(255,255,255,0.06);
+    border-radius: 16px 16px 16px 4px;
+    color: rgba(200,200,216,0.6);
+  }
+
+  .msg-bubble.me {
+    background: rgba(100,140,255,0.15);
+    border-radius: 16px 16px 4px 16px;
+    margin-left: auto;
+    color: rgba(180,200,255,0.7);
+  }
+
+  .msg-bubble.faded { opacity: 0.35; }
+
+  .typing-area {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    padding: 10px 14px;
+    font-size: 11px;
+    color: rgba(200,200,216,0.5);
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .typing-text {
+    flex: 1;
+    overflow: hidden; white-space: nowrap;
+  }
+
+  .cursor-blink {
+    display: inline-block; width: 1px; height: 12px;
+    background: var(--pulse); margin-left: 2px;
+    animation: blink 1s step-end infinite;
+    vertical-align: middle;
+  }
+
+  @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+
+  .delete-btn {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: rgba(255,80,80,0.15);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; color: rgba(255,120,120,0.6);
+  }
+
+  .scene1-text { text-align: left; }
+
+  .label-tag {
+    display: inline-block;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px; font-weight: 500;
+    letter-spacing: 0.2em; text-transform: uppercase;
+    color: rgba(200,200,216,0.4);
+    border: 1px solid rgba(200,200,216,0.12);
+    padding: 4px 12px; border-radius: 20px;
+    margin-bottom: 24px;
+  }
+
+  h1.scene-heading {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: clamp(2.4rem, 5vw, 4rem);
+    line-height: 1.12;
+    letter-spacing: -0.01em;
+    color: var(--white);
+    margin-bottom: 20px;
+  }
+
+  h1.scene-heading em {
+    font-style: italic;
+    color: rgba(232,201,122,0.85);
+  }
+
+  .scene-body {
+    font-size: 15px; line-height: 1.8;
+    color: rgba(200,200,216,0.55);
+    font-weight: 300;
+    max-width: 380px;
+  }
+
+  /* ── SCENE 2 – RELATABLE ── */
+  #scene2 {
+    background: var(--ash);
+  }
+
+  .s2-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 2px; max-width: 960px; width: 100%;
+    position: relative; z-index: 2;
+    margin-bottom: 60px;
+  }
+
+  .person-card {
+    position: relative; overflow: hidden;
+    aspect-ratio: 3/4;
+    background: var(--mist);
+    border-radius: 4px;
+  }
+
+  .person-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(10,10,15,0.9) 0%, transparent 50%);
+    z-index: 1;
+  }
+
+  .person-bg {
+    position: absolute; inset: 0;
+    background-size: cover; background-position: center;
+    filter: grayscale(60%) brightness(0.5);
+    transition: filter 1s ease;
+  }
+
+  .person-card:hover .person-bg { filter: grayscale(20%) brightness(0.7); }
+
+  .p1 .person-bg { background: radial-gradient(ellipse at 50% 30%, #2a1a2e 0%, #0d0d14 100%); }
+  .p2 .person-bg { background: radial-gradient(ellipse at 50% 30%, #0f1e2a 0%, #0a0a0f 100%); }
+  .p3 .person-bg { background: radial-gradient(ellipse at 50% 30%, #1a200f 0%, #0a0a0f 100%); }
+
+  .person-silhouette {
+    position: absolute;
+    bottom: 0; left: 50%; transform: translateX(-50%);
+    z-index: 0;
+  }
+
+  .person-info {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 20px 16px;
+    z-index: 2;
+  }
+
+  .person-role {
+    font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: rgba(200,200,216,0.4); margin-bottom: 6px;
+  }
+
+  .person-want {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 15px; font-style: italic;
+    color: rgba(232,201,122,0.8);
+    line-height: 1.4;
+  }
+
+  .mini-phone {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-top: 10px;
+    font-size: 10px; color: rgba(200,200,216,0.5);
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  .typed-then-deleted {
+    text-decoration: line-through;
+    color: rgba(200,100,100,0.5);
+    animation: typeDelete 4s ease-in-out infinite;
+  }
+
+  @keyframes typeDelete {
+    0%,20% { opacity: 0; text-decoration: none; }
+    40% { opacity: 1; text-decoration: none; }
+    60% { opacity: 1; text-decoration: line-through; color: rgba(200,100,100,0.5); }
+    80%,100% { opacity: 0; }
+  }
+
+  .vo-block {
+    max-width: 560px; text-align: center;
+    position: relative; z-index: 2;
+  }
+
+  .vo-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    font-style: italic; font-weight: 300;
+    color: rgba(244,244,248,0.8);
+    line-height: 1.6;
+  }
+
+  .vo-text strong {
+    font-style: normal; font-weight: 600;
+    color: var(--glow);
+  }
+
+  /* ── SCENE 3 – EMOTION CLOSE-UPS ── */
+  #scene3 {
+    background: linear-gradient(180deg, var(--ash) 0%, #0c0c14 100%);
+  }
+
+  .emotions-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 16px; max-width: 900px; width: 100%;
+    margin-bottom: 60px;
+    position: relative; z-index: 2;
+  }
+
+  .emotion-card {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .e-fear { background: radial-gradient(circle, #1a0808 0%, #0a0a0f 100%); }
+  .e-ego { background: radial-gradient(circle, #08081a 0%, #0a0a0f 100%); }
+  .e-regret { background: radial-gradient(circle, #0a1008 0%, #0a0a0f 100%); }
+  .e-silence { background: radial-gradient(circle, #0f0f18 0%, #0a0a0f 100%); }
+
+  .emotion-icon { font-size: 2rem; margin-bottom: 8px; }
+  .emotion-word {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem; letter-spacing: 0.1em;
+    color: rgba(200,200,216,0.5);
+  }
+
+  .e-fear .emotion-word { color: rgba(255,100,100,0.6); }
+  .e-ego .emotion-word { color: rgba(100,100,255,0.6); }
+  .e-regret .emotion-word { color: rgba(100,200,100,0.5); }
+  .e-silence .emotion-word { color: rgba(200,200,216,0.3); }
+
+  .emotion-card::before {
+    content: '';
+    position: absolute; inset: -2px;
+    border-radius: 50%;
+    background: conic-gradient(from var(--angle, 0deg), transparent 60%, rgba(255,255,255,0.06) 100%);
+    animation: spin 8s linear infinite;
+  }
+
+  @property --angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+  @keyframes spin { to { --angle: 360deg; } }
+
+  .s3-vo {
+    max-width: 540px; text-align: center;
+    position: relative; z-index: 2;
+  }
+
+  /* ── SCENE 4 – PRODUCT REVEAL ── */
+  #scene4 {
+    background: radial-gradient(ellipse at 50% 100%, #101828 0%, #080810 100%);
+  }
+
+  .s4-content {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 60px;
+    position: relative; z-index: 2;
+    max-width: 800px; width: 100%;
+  }
+
+  .s4-heading {
+    text-align: center;
+  }
+
+  .product-reveal-phone {
+    width: 280px;
+    background: #0c0c18;
+    border-radius: 44px;
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 32px 24px;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.04),
+      0 60px 120px rgba(0,0,0,0.9),
+      0 0 80px rgba(126,184,247,0.08),
+      inset 0 1px 0 rgba(255,255,255,0.07);
+    position: relative;
+  }
+
+  .product-reveal-phone::after {
+    content: '';
+    position: absolute; inset: -1px;
+    border-radius: 44px;
+    background: linear-gradient(135deg, rgba(126,184,247,0.15), transparent 50%, rgba(232,201,122,0.08));
+    pointer-events: none;
+  }
+
+  .app-header {
+    text-align: center; margin-bottom: 24px;
+  }
+
+  .app-logo-small {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.2rem; letter-spacing: 0.15em;
+    color: var(--pulse);
+  }
+
+  .app-tagline-small {
+    font-size: 9px; color: rgba(200,200,216,0.3);
+    letter-spacing: 0.12em; text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .compose-area {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+
+  .compose-label {
+    font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: rgba(200,200,216,0.3); margin-bottom: 8px;
+  }
+
+  .compose-text {
+    font-size: 13px; color: var(--silver);
+    line-height: 1.6; font-style: italic;
+    font-family: 'Cormorant Garamond', serif;
+    min-height: 60px;
+  }
+
+  .anon-toggle {
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+  }
+
+  .toggle-label {
+    font-size: 11px; color: rgba(200,200,216,0.5);
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .anon-icon {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: rgba(126,184,247,0.2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+  }
+
+  .toggle-pill {
+    width: 36px; height: 20px; border-radius: 10px;
+    background: linear-gradient(90deg, var(--pulse), #a0c8ff);
+    position: relative;
+    box-shadow: 0 0 12px rgba(126,184,247,0.4);
+  }
+
+  .toggle-pill::after {
+    content: ''; position: absolute;
+    right: 2px; top: 2px;
+    width: 16px; height: 16px; border-radius: 8px;
+    background: white;
+  }
+
+  .send-btn {
+    width: 100%;
+    background: linear-gradient(135deg, var(--pulse) 0%, #5090e0 100%);
+    border: none; border-radius: 16px;
+    padding: 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px; font-weight: 500;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 8px 30px rgba(126,184,247,0.3);
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    animation: sendPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes sendPulse {
+    0%,100% { box-shadow: 0 8px 30px rgba(126,184,247,0.3); }
+    50% { box-shadow: 0 8px 50px rgba(126,184,247,0.5), 0 0 20px rgba(126,184,247,0.2); }
+  }
+
+  .send-btn::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+    transform: translateX(-100%);
+    animation: shimmer 3s ease-in-out infinite;
+  }
+
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    40%,100% { transform: translateX(100%); }
+  }
+
+  .floating-particles {
+    position: absolute; inset: 0; overflow: hidden; pointer-events: none;
+  }
+
+  .particle {
+    position: absolute;
+    width: 2px; height: 2px; border-radius: 50%;
+    background: var(--pulse);
+    animation: float var(--dur, 8s) ease-in-out infinite var(--delay, 0s);
+    opacity: 0;
+  }
+
+  @keyframes float {
+    0% { transform: translateY(100%) translateX(var(--x1, 0)); opacity: 0; }
+    20% { opacity: 0.6; }
+    80% { opacity: 0.3; }
+    100% { transform: translateY(-20%) translateX(var(--x2, 20px)); opacity: 0; }
+  }
+
+  /* ── SCENE 5 – TRANSFORMATION ── */
+  #scene5 {
+    background: linear-gradient(180deg, #080810 0%, #0e1a0e 100%);
+  }
+
+  .s5-content {
+    max-width: 900px; width: 100%;
+    position: relative; z-index: 2;
+    display: flex; flex-direction: column; gap: 60px;
+    align-items: center;
+  }
+
+  .reactions-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 24px; width: 100%;
+  }
+
+  .reaction-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 20px;
+    padding: 28px 20px;
+    text-align: center;
+    position: relative; overflow: hidden;
+    transition: transform 0.3s ease, border-color 0.3s ease;
+  }
+
+  .reaction-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255,255,255,0.12);
+  }
+
+  .reaction-card::before {
+    content: '';
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 60px;
+    background: var(--card-glow, rgba(232,201,122,0.05));
+    filter: blur(20px);
+  }
+
+  .rc-father { --card-glow: rgba(232,201,122,0.08); }
+  .rc-girl { --card-glow: rgba(255,150,180,0.08); }
+  .rc-friend { --card-glow: rgba(100,220,150,0.08); }
+
+  .reaction-emoji { font-size: 2.5rem; margin-bottom: 12px; display: block; }
+
+  .reaction-msg {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.1rem; font-style: italic;
+    color: var(--glow); margin-bottom: 12px;
+    line-height: 1.4;
+  }
+
+  .rc-girl .reaction-msg { color: rgba(255,170,200,0.9); }
+  .rc-friend .reaction-msg { color: rgba(120,220,160,0.9); }
+
+  .reaction-desc {
+    font-size: 12px; color: rgba(200,200,216,0.4);
+    line-height: 1.6;
+  }
+
+  .reaction-label {
+    font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: rgba(200,200,216,0.2); margin-bottom: 12px;
+  }
+
+  .s5-vo { text-align: center; }
+
+  /* ── SCENE 6 – BRAND REVEAL ── */
+  #scene6 {
+    background: radial-gradient(ellipse at 50% 50%, #080c18 0%, var(--ink) 80%);
+    text-align: center;
+  }
+
+  .brand-reveal {
+    position: relative; z-index: 2;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 0;
+  }
+
+  .brand-eyebrow {
+    font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase;
+    color: rgba(200,200,216,0.3);
+    margin-bottom: 28px;
+  }
+
+  .main-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(5rem, 15vw, 12rem);
+    letter-spacing: 0.06em;
+    line-height: 0.9;
+    background: linear-gradient(135deg, #ffffff 0%, #c8d8f0 40%, var(--pulse) 70%, #e8f0ff 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    position: relative;
+    animation: logoGlow 4s ease-in-out infinite;
+    filter: drop-shadow(0 0 60px rgba(126,184,247,0.15));
+  }
+
+  @keyframes logoGlow {
+    0%,100% { filter: drop-shadow(0 0 40px rgba(126,184,247,0.1)) drop-shadow(0 0 80px rgba(126,184,247,0.05)); }
+    50% { filter: drop-shadow(0 0 60px rgba(126,184,247,0.25)) drop-shadow(0 0 120px rgba(126,184,247,0.1)); }
+  }
+
+  .logo-line {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(126,184,247,0.4), transparent);
+    margin: 12px 0;
+    animation: lineExpand 2s ease-out forwards;
+  }
+
+  @keyframes lineExpand {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+  }
+
+  .main-tagline {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(1.2rem, 3vw, 1.8rem);
+    font-style: italic; font-weight: 300;
+    color: rgba(200,200,216,0.7);
+    letter-spacing: 0.04em;
+    margin-bottom: 48px;
+  }
+
+  .main-tagline span { color: var(--glow); font-style: normal; font-weight: 400; }
+
+  .final-cta {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(1.6rem, 4vw, 3rem);
+    letter-spacing: 0.2em;
+    color: white;
+    margin-bottom: 48px;
+    animation: ctaPulse 3s ease-in-out infinite;
+  }
+
+  @keyframes ctaPulse {
+    0%,100% { opacity: 0.9; }
+    50% { opacity: 1; }
+  }
+
+  .cta-period { color: var(--pulse); }
+
+  .download-area {
+    display: flex; gap: 16px; align-items: center;
+  }
+
+  .store-btn {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px; padding: 12px 20px;
+    color: var(--white); text-decoration: none;
+    font-size: 12px;
+    transition: background 0.3s ease, border-color 0.3s ease;
+    cursor: pointer;
+  }
+
+  .store-btn:hover {
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.18);
+  }
+
+  .store-icon { font-size: 1.4rem; }
+  .store-text { display: flex; flex-direction: column; }
+  .store-line1 { font-size: 9px; color: rgba(200,200,216,0.4); letter-spacing: 0.05em; }
+  .store-line2 { font-size: 13px; font-weight: 500; }
+
+  /* ── AMBIENT GLOW ORBS ── */
+  .orb {
+    position: absolute; border-radius: 50%;
+    filter: blur(80px); pointer-events: none;
+  }
+
+  /* ── SCENE INDICATORS ── */
+  .scene-nav {
+    position: fixed; right: 24px; top: 50%; transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 8px; z-index: 1000;
+  }
+
+  .nav-dot {
+    width: 6px; height: 6px; border-radius: 3px;
+    background: rgba(200,200,216,0.2);
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+
+  .nav-dot.active {
+    background: var(--pulse);
+    height: 20px;
+    box-shadow: 0 0 8px rgba(126,184,247,0.4);
+  }
+
+  /* ── VOICEOVER CAPTION STYLE ── */
+  .vo-caption {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(1.3rem, 2.5vw, 1.7rem);
+    font-style: italic; font-weight: 300;
+    color: rgba(244,244,248,0.75);
+    line-height: 1.65;
+    text-align: center;
+    max-width: 600px;
+  }
+
+  .vo-caption strong {
+    font-style: normal; font-weight: 600;
+    color: rgba(232,201,122,0.9);
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    .scene1-content { grid-template-columns: 1fr; gap: 40px; text-align: center; }
+    .scene1-text { text-align: center; }
+    .s2-grid { grid-template-columns: 1fr; }
+    .emotions-grid { grid-template-columns: repeat(2, 1fr); }
+    .reactions-grid { grid-template-columns: 1fr; }
+    .download-area { flex-direction: column; }
+    .phone-mockup { width: 200px; }
+  }
+
+  /* ── MODAL OVERLAY ── */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0; z-index: 10000;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(12px);
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: #111118;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 24px;
+    padding: 40px 36px;
+    width: 100%; max-width: 420px;
+    position: relative;
+    box-shadow: 0 40px 100px rgba(0,0,0,0.9);
+    animation: modalIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  @keyframes modalIn {
+    from { transform: scale(0.9) translateY(20px); opacity: 0; }
+    to   { transform: scale(1)   translateY(0);    opacity: 1; }
+  }
+
+  .modal-close {
+    position: absolute; top: 16px; right: 16px;
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    border: none; color: rgba(200,200,216,0.5);
+    cursor: pointer; font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s;
+  }
+  .modal-close:hover { background: rgba(255,255,255,0.12); color: white; }
+
+  .modal-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem; letter-spacing: 0.12em;
+    color: white; margin-bottom: 4px;
+  }
+  .modal-logo span { color: var(--pulse); }
+
+  .modal-subtitle {
+    font-size: 12px; color: rgba(200,200,216,0.4);
+    margin-bottom: 28px;
+  }
+
+  .modal-tabs {
+    display: flex; gap: 4px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 12px; padding: 4px;
+    margin-bottom: 24px;
+  }
+
+  .modal-tab {
+    flex: 1; padding: 8px;
+    background: transparent; border: none;
+    border-radius: 9px; color: rgba(200,200,216,0.5);
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .modal-tab.active {
+    background: rgba(126,184,247,0.15);
+    color: var(--pulse);
+  }
+
+  .modal-form { display: flex; flex-direction: column; gap: 12px; }
+
+  .modal-input {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px; padding: 12px 16px;
+    font-family: 'DM Sans', sans-serif; font-size: 14px;
+    color: white; outline: none;
+    transition: border-color 0.2s;
+  }
+  .modal-input:focus { border-color: rgba(126,184,247,0.4); }
+  .modal-input::placeholder { color: rgba(200,200,216,0.3); }
+
+  .modal-btn {
+    width: 100%; padding: 14px;
+    background: linear-gradient(135deg, var(--pulse), #5090e0);
+    border: none; border-radius: 14px;
+    font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+    color: white; cursor: pointer; margin-top: 4px;
+    transition: opacity 0.2s, transform 0.1s;
+    position: relative; overflow: hidden;
+  }
+  .modal-btn:hover { opacity: 0.9; }
+  .modal-btn:active { transform: scale(0.98); }
+  .modal-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .modal-error {
+    background: rgba(240,80,80,0.1);
+    border: 1px solid rgba(240,80,80,0.2);
+    border-radius: 10px; padding: 10px 14px;
+    font-size: 12px; color: rgba(255,160,160,0.9);
+    display: none;
+  }
+  .modal-error.show { display: block; }
+
+  .modal-success {
+    background: rgba(80,192,128,0.1);
+    border: 1px solid rgba(80,192,128,0.2);
+    border-radius: 10px; padding: 10px 14px;
+    font-size: 12px; color: rgba(120,220,160,0.9);
+    display: none; text-align: center;
+  }
+  .modal-success.show { display: block; }
+
+  /* ── SEND MODAL ── */
+  .send-modal-textarea {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px; padding: 14px 16px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 15px; font-style: italic;
+    color: white; outline: none; resize: none;
+    width: 100%; min-height: 100px;
+    transition: border-color 0.2s;
+  }
+  .send-modal-textarea:focus { border-color: rgba(126,184,247,0.4); }
+  .send-modal-textarea::placeholder { color: rgba(200,200,216,0.3); }
+
+  .char-count {
+    font-size: 11px; color: rgba(200,200,216,0.3);
+    text-align: right; margin-top: -4px;
+  }
+
+  /* ── USER AVATAR (top bar) ── */
+  .top-user {
+    display: flex; align-items: center; gap: 8px;
+    cursor: pointer;
+  }
+  .top-avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: linear-gradient(135deg, #3a2060, var(--pulse));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; color: white;
+  }
+  .top-username { font-size: 12px; color: rgba(200,200,216,0.6); }
+
+  .top-login-btn {
+    background: rgba(126,184,247,0.1);
+    border: 1px solid rgba(126,184,247,0.2);
+    border-radius: 20px; padding: 5px 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px; color: var(--pulse);
+    cursor: pointer; letter-spacing: 0.05em;
+    transition: all 0.2s;
+  }
+  .top-login-btn:hover { background: rgba(126,184,247,0.18); }
+
+  /* ── INBOX DRAWER ── */
+  .inbox-drawer {
+    position: fixed; right: -420px; top: 56px; bottom: 0;
+    width: 400px; z-index: 9000;
+    background: #0e0e16;
+    border-left: 1px solid rgba(255,255,255,0.07);
+    transition: right 0.35s cubic-bezier(0.4,0,0.2,1);
+    display: flex; flex-direction: column;
+    box-shadow: -20px 0 60px rgba(0,0,0,0.6);
+  }
+  .inbox-drawer.open { right: 0; }
+
+  .inbox-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .inbox-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.3rem; letter-spacing: 0.1em; color: white;
+  }
+  .inbox-badge {
+    background: var(--pulse); color: var(--ink);
+    font-size: 10px; font-weight: 700;
+    padding: 2px 7px; border-radius: 10px; margin-left: 8px;
+  }
+  .inbox-close {
+    background: transparent; border: none;
+    color: rgba(200,200,216,0.4); font-size: 18px; cursor: pointer;
+  }
+
+  .inbox-list {
+    flex: 1; overflow-y: auto; padding: 12px;
+  }
+  .inbox-list::-webkit-scrollbar { width: 4px; }
+  .inbox-list::-webkit-scrollbar-track { background: transparent; }
+  .inbox-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+  .inbox-item {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 14px; padding: 14px 16px;
+    margin-bottom: 8px; cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    position: relative;
+  }
+  .inbox-item:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.1); }
+  .inbox-item.unread { border-left: 3px solid var(--pulse); }
+
+  .inbox-item-sender {
+    font-size: 11px; color: rgba(200,200,216,0.4);
+    margin-bottom: 6px; display: flex; align-items: center; gap: 6px;
+  }
+  .anon-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--pulse); display: inline-block;
+  }
+  .inbox-item-content {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 14px; font-style: italic;
+    color: rgba(200,200,216,0.8); line-height: 1.5;
+    display: -webkit-box; -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .inbox-item-time {
+    font-size: 10px; color: rgba(200,200,216,0.25);
+    margin-top: 8px;
+  }
+
+  .inbox-empty {
+    text-align: center; padding: 60px 20px;
+    color: rgba(200,200,216,0.3); font-size: 13px;
+  }
+  .inbox-empty-icon { font-size: 2rem; margin-bottom: 12px; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: #1a1a28; border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 40px; padding: 10px 20px;
+    font-size: 13px; color: rgba(200,200,216,0.9);
+    z-index: 20000; opacity: 0;
+    transition: opacity 0.3s, transform 0.3s;
+    white-space: nowrap;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+  }
+  .toast.show {
+    opacity: 1; transform: translateX(-50%) translateY(0);
+  }
+  .toast.success { border-color: rgba(80,192,128,0.3); color: rgba(120,220,160,0.9); }
+  .toast.error   { border-color: rgba(240,80,80,0.3);  color: rgba(255,160,160,0.9); }
+
+  /* ── SCROLL ANIMATIONS ── */
+  .fade-in {
+    opacity: 0; transform: translateY(30px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+  }
+
+  .fade-in.visible {
+    opacity: 1; transform: translateY(0);
+  }
+
+  .fade-in-delay-1 { transition-delay: 0.1s; }
+  .fade-in-delay-2 { transition-delay: 0.2s; }
+  .fade-in-delay-3 { transition-delay: 0.35s; }
+  .fade-in-delay-4 { transition-delay: 0.5s; }
+
+  /* ── TOP HEADER ── */
+  .top-bar {
+    position: fixed; top: 0; left: 0; right: 0;
+    height: 56px; z-index: 500;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 32px;
+    background: rgba(10,10,15,0.8);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .top-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem; letter-spacing: 0.12em;
+    color: var(--white);
+  }
+
+  .top-logo span { color: var(--pulse); }
+
+  .top-badge {
+    font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: rgba(200,200,216,0.3);
+    border: 1px solid rgba(200,200,216,0.12);
+    padding: 4px 10px; border-radius: 12px;
+  }
+
+  /* scene dividers */
+  .scene-label {
+    position: absolute; top: 28px; left: 32px;
+    font-size: 9px; letter-spacing: 0.25em; text-transform: uppercase;
+    color: rgba(200,200,216,0.2);
+    z-index: 10;
+  }
+
+  .scene-number {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 11rem;
+    position: absolute; bottom: -20px; right: -10px;
+    color: rgba(255,255,255,0.015);
+    line-height: 1;
+    pointer-events: none;
+    user-select: none;
+  }
+
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<header class="top-bar">
+  <div class="top-logo">Do<span>Dispatch</span></div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div id="inboxBtn" style="display:none;">
+      <div class="top-badge" style="cursor:pointer;" onclick="toggleInbox()">
+        📥 Inbox <span id="unreadBadge" class="inbox-badge" style="display:none;"></span>
+      </div>
+    </div>
+    <div id="authArea">
+      <button class="top-login-btn" onclick="openAuthModal('login')">Sign In</button>
+    </div>
+    <div id="userArea" style="display:none;">
+      <div class="top-user" onclick="openAuthModal('profile')">
+        <div class="top-avatar" id="topAvatar">?</div>
+        <span class="top-username" id="topUsername"></span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- AUTH MODAL -->
+<div class="modal-overlay" id="authModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeAuthModal()">✕</button>
+    <div class="modal-logo">Do<span>Dispatch</span></div>
+    <p class="modal-subtitle">Your identity. Always protected.</p>
+    <div class="modal-tabs">
+      <button class="modal-tab active" onclick="switchTab('login')">Sign In</button>
+      <button class="modal-tab" onclick="switchTab('register')">Create Account</button>
+    </div>
+    <div id="loginForm" class="modal-form">
+      <input class="modal-input" type="email" id="loginEmail" placeholder="Email address" />
+      <input class="modal-input" type="password" id="loginPassword" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()" />
+      <div class="modal-error" id="loginError"></div>
+      <button class="modal-btn" id="loginBtn" onclick="doLogin()">Sign In</button>
+    </div>
+    <div id="registerForm" class="modal-form" style="display:none;">
+      <input class="modal-input" type="text"     id="regUsername"    placeholder="Username (letters, numbers, _)" />
+      <input class="modal-input" type="text"     id="regDisplayName" placeholder="Display name" />
+      <input class="modal-input" type="email"    id="regEmail"       placeholder="Email address" />
+      <input class="modal-input" type="password" id="regPassword"    placeholder="Password (min 8 chars)" />
+      <div class="modal-error"   id="registerError"></div>
+      <div class="modal-success" id="registerSuccess"></div>
+      <button class="modal-btn" id="registerBtn" onclick="doRegister()">Create Account</button>
+    </div>
+    <div id="profilePanel" style="display:none;">
+      <div style="text-align:center;margin-bottom:20px;">
+        <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#3a2060,var(--pulse));display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:white;margin:0 auto 10px;" id="profileAvatar">?</div>
+        <div style="font-size:16px;font-weight:600;color:white;" id="profileName"></div>
+        <div style="font-size:12px;color:rgba(200,200,216,0.4);" id="profileUsername"></div>
+      </div>
+      <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:14px 16px;margin-bottom:16px;">
+        <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(200,200,216,0.3);margin-bottom:6px;">Your shareable link</div>
+        <div style="color:var(--pulse);font-size:13px;word-break:break-all;" id="shareLink"></div>
+      </div>
+      <button class="modal-btn" onclick="doLogout()" style="background:rgba(240,80,80,0.15);border:1px solid rgba(240,80,80,0.2);color:rgba(255,160,160,0.8);">Sign Out</button>
+    </div>
+  </div>
+</div>
+
+<!-- SEND MESSAGE MODAL -->
+<div class="modal-overlay" id="sendModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeSendModal()">✕</button>
+    <div class="modal-logo">Do<span>Dispatch</span></div>
+    <p class="modal-subtitle">Say what your heart couldn't.</p>
+    <div class="modal-form">
+      <input class="modal-input" type="text" id="sendRecipient" placeholder="Recipient username (e.g. priya_k)" />
+      <textarea class="send-modal-textarea" id="sendContent" placeholder="Write your message… be honest." maxlength="2000" oninput="updateCharCount()"></textarea>
+      <div class="char-count"><span id="charCount">0</span> / 2000</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:12px 16px;">
+        <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(200,200,216,0.6);">
+          <span>🎭</span> Send Anonymously
+        </div>
+        <div class="toggle-pill" id="anonToggle" onclick="toggleAnon()" style="cursor:pointer;"></div>
+      </div>
+      <select class="modal-input" id="deliveryMethod" style="cursor:pointer;">
+        <option value="in_app">📱 In-app only</option>
+        <option value="email">📧 Also send via Email</option>
+        <option value="sms">💬 Also send via SMS</option>
+      </select>
+      <div class="modal-error" id="sendError"></div>
+      <button class="modal-btn" id="sendMsgBtn" onclick="doSendMessage()">↗ Send Message</button>
+    </div>
+  </div>
+</div>
+
+<!-- INBOX DRAWER -->
+<div class="inbox-drawer" id="inboxDrawer">
+  <div class="inbox-header">
+    <div>
+      <span class="inbox-title">Inbox</span>
+      <span class="inbox-badge" id="drawerUnreadBadge" style="display:none;"></span>
+    </div>
+    <button class="inbox-close" onclick="toggleInbox()">✕</button>
+  </div>
+  <div class="inbox-list" id="inboxList">
+    <div class="inbox-empty"><div class="inbox-empty-icon">💌</div>Loading…</div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- SCENE NAVIGATION -->
+<nav class="scene-nav" aria-label="Scene navigation">
+  <div class="nav-dot active" onclick="scrollToScene(0)" title="Scene 1"></div>
+  <div class="nav-dot" onclick="scrollToScene(1)" title="Scene 2"></div>
+  <div class="nav-dot" onclick="scrollToScene(2)" title="Scene 3"></div>
+  <div class="nav-dot" onclick="scrollToScene(3)" title="Scene 4"></div>
+  <div class="nav-dot" onclick="scrollToScene(4)" title="Scene 5"></div>
+  <div class="nav-dot" onclick="scrollToScene(5)" title="Scene 6"></div>
+</nav>
+
+<!-- ═══════════ SCENE 1 – PROBLEM ═══════════ -->
+<section class="scene" id="scene1">
+  <div class="room-ambience"></div>
+  <div class="scene-label">Scene 01 — The Weight of Silence</div>
+  <div class="scene-number">01</div>
+
+  <div class="scene1-content">
+    <div class="fade-in">
+      <div class="phone-mockup">
+        <div class="phone-mockup::before"></div>
+        <div class="chat-header">
+          <div class="avatar">R</div>
+          <div>
+            <div class="chat-name">Rahul</div>
+            <div class="chat-status">Last seen 3 years ago</div>
+          </div>
+        </div>
+        <div class="old-messages">
+          <div class="msg-bubble them faded">Hey, how are you doing?</div>
+          <div class="msg-bubble me faded">Yeah good, just busy.</div>
+          <div class="msg-bubble them faded">We should catch up sometime.</div>
+          <div class="msg-bubble me faded" style="opacity:0.15;">Okay sure</div>
+        </div>
+        <div class="typing-area">
+          <div class="typing-text">
+            <span id="typing-msg">I'm sorry…</span><span class="cursor-blink"></span>
+          </div>
+          <div class="delete-btn">⌫</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="scene1-text fade-in fade-in-delay-2">
+      <div class="label-tag">2:47 AM</div>
+      <h1 class="scene-heading">
+        You've typed it<br>a hundred times.<br>
+        <em>Never sent it.</em>
+      </h1>
+      <p class="scene-body">
+        The message sits there. Every word you mean. Every apology you owe. Every feeling you've buried. The cursor blinks. You delete it again.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ SCENE 2 – RELATABLE ═══════════ -->
+<section class="scene" id="scene2">
+  <div class="scene-label">Scene 02 — We All Do This</div>
+  <div class="scene-number">02</div>
+
+  <div class="s2-grid fade-in">
+    <div class="person-card p1">
+      <div class="person-bg"></div>
+      <svg class="person-silhouette" width="120" height="200" viewBox="0 0 120 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="60" cy="35" rx="22" ry="22" fill="rgba(255,255,255,0.04)"/>
+        <path d="M20 100 Q60 75 100 100 L105 200 H15 Z" fill="rgba(255,255,255,0.03)"/>
+      </svg>
+      <div class="person-info">
+        <div class="person-role">A girl in love</div>
+        <div class="person-want">"I've liked you for two years…"</div>
+        <div class="mini-phone">
+          💬 <span class="typed-then-deleted">I think I love you</span>
+        </div>
+      </div>
+    </div>
+    <div class="person-card p2">
+      <div class="person-bg"></div>
+      <svg class="person-silhouette" width="120" height="200" viewBox="0 0 120 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="60" cy="35" rx="24" ry="24" fill="rgba(255,255,255,0.04)"/>
+        <path d="M15 100 Q60 78 105 100 L108 200 H12 Z" fill="rgba(255,255,255,0.03)"/>
+      </svg>
+      <div class="person-info">
+        <div class="person-role">A son, far from home</div>
+        <div class="person-want">"Dad, I never said thank you…"</div>
+        <div class="mini-phone">
+          💬 <span class="typed-then-deleted">You mean everything to me</span>
+        </div>
+      </div>
+    </div>
+    <div class="person-card p3">
+      <div class="person-bg"></div>
+      <svg class="person-silhouette" width="120" height="200" viewBox="0 0 120 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="60" cy="33" rx="20" ry="20" fill="rgba(255,255,255,0.04)"/>
+        <path d="M22 98 Q60 76 98 98 L102 200 H18 Z" fill="rgba(255,255,255,0.03)"/>
+      </svg>
+      <div class="person-info">
+        <div class="person-role">A friend with regret</div>
+        <div class="person-want">"I shouldn't have said that…"</div>
+        <div class="mini-phone">
+          💬 <span class="typed-then-deleted">I'm really sorry, please forgive me</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="vo-block fade-in fade-in-delay-2">
+    <p class="vo-text">
+      "Some words stay trapped… not because they don't matter…<br>
+      but because <strong>we're afraid.</strong>"
+    </p>
+  </div>
+</section>
+
+<!-- ═══════════ SCENE 3 – EMOTION ═══════════ -->
+<section class="scene" id="scene3">
+  <div class="scene-label">Scene 03 — The Real Barrier</div>
+  <div class="scene-number">03</div>
+
+  <div class="emotions-grid fade-in">
+    <div class="emotion-card e-fear">
+      <div class="emotion-icon">😰</div>
+      <div class="emotion-word">FEAR</div>
+    </div>
+    <div class="emotion-card e-ego">
+      <div class="emotion-icon">🧊</div>
+      <div class="emotion-word">EGO</div>
+    </div>
+    <div class="emotion-card e-regret">
+      <div class="emotion-icon">🌿</div>
+      <div class="emotion-word">REGRET</div>
+    </div>
+    <div class="emotion-card e-silence">
+      <div class="emotion-icon">🤐</div>
+      <div class="emotion-word">SILENCE</div>
+    </div>
+  </div>
+
+  <div class="s3-vo fade-in fade-in-delay-2">
+    <p class="vo-caption">
+      "It's not easy to say what your heart feels.<br>
+      <strong>Fear. Judgment. Ego. Silence.</strong><br>
+      These four walls. They keep you trapped."
+    </p>
+  </div>
+</section>
+
+<!-- ═══════════ SCENE 4 – PRODUCT REVEAL ═══════════ -->
+<section class="scene" id="scene4">
+  <div class="scene-label">Scene 04 — The Breakthrough</div>
+  <div class="scene-number">04</div>
+
+  <!-- Particles -->
+  <div class="floating-particles" aria-hidden="true">
+    <div class="particle" style="left:10%;--dur:9s;--delay:0s;--x1:-10px;--x2:20px;"></div>
+    <div class="particle" style="left:25%;--dur:7s;--delay:1s;--x1:5px;--x2:-15px;"></div>
+    <div class="particle" style="left:50%;--dur:11s;--delay:0.5s;--x1:-20px;--x2:10px;"></div>
+    <div class="particle" style="left:70%;--dur:8s;--delay:2s;--x1:15px;--x2:-5px;"></div>
+    <div class="particle" style="left:85%;--dur:10s;--delay:1.5s;--x1:-8px;--x2:18px;"></div>
+    <div class="particle" style="left:40%;--dur:6s;--delay:3s;--x1:10px;--x2:-20px;"></div>
+    <div class="particle" style="left:60%;--dur:12s;--delay:0.3s;--x1:-12px;--x2:8px;"></div>
+  </div>
+
+  <div class="s4-content">
+    <div class="s4-heading fade-in">
+      <div class="label-tag">Introducing</div>
+      <h2 style="font-family:'Cormorant Garamond',serif;font-weight:300;font-size:clamp(1.8rem,4vw,3rem);color:var(--white);margin-bottom:12px;">
+        A new way to say it.
+      </h2>
+      <p style="font-size:15px;color:rgba(200,200,216,0.45);max-width:400px;margin:0 auto;">
+        Anonymous. Private. Yours.
+      </p>
+    </div>
+
+    <div class="product-reveal-phone fade-in fade-in-delay-2">
+      <div class="app-header">
+        <div class="app-logo-small">DoDispatch</div>
+        <div class="app-tagline-small">Say what your heart couldn't</div>
+      </div>
+
+      <div class="compose-area">
+        <div class="compose-label">Your message</div>
+        <div class="compose-text" id="compose-display">
+          "Thank you for always being there, even when I never said it…"
+        </div>
+      </div>
+
+      <div class="anon-toggle">
+        <div class="toggle-label">
+          <div class="anon-icon">🎭</div>
+          Send Anonymously
+        </div>
+        <div class="toggle-pill"></div>
+      </div>
+
+      <button class="send-btn" onclick="openSendModal()">
+        ↗ Send Anonymously
+      </button>
+    </div>
+
+    <div class="fade-in fade-in-delay-3" style="text-align:center;">
+      <p style="font-size:13px;color:rgba(200,200,216,0.35);letter-spacing:0.05em;">
+        Your identity. Always protected.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ SCENE 5 – TRANSFORMATION ═══════════ -->
+<section class="scene" id="scene5">
+  <div class="scene-label">Scene 05 — When They Receive It</div>
+  <div class="scene-number">05</div>
+
+  <!-- warm ambient -->
+  <div class="orb" style="width:400px;height:400px;background:radial-gradient(circle,rgba(100,180,100,0.06),transparent);top:-100px;left:-100px;"></div>
+  <div class="orb" style="width:300px;height:300px;background:radial-gradient(circle,rgba(232,201,122,0.07),transparent);bottom:0;right:0;"></div>
+
+  <div class="s5-content">
+    <div class="reactions-grid">
+      <div class="reaction-card rc-father fade-in">
+        <div class="reaction-label">A Father Reads</div>
+        <span class="reaction-emoji">🥹</span>
+        <div class="reaction-msg">"Thank you for everything."</div>
+        <div class="reaction-desc">An anonymous message. No name. No context needed. Just truth — and it breaks him open in the best way.</div>
+      </div>
+      <div class="reaction-card rc-girl fade-in fade-in-delay-1">
+        <div class="reaction-label">A Girl Receives</div>
+        <span class="reaction-emoji">💗</span>
+        <div class="reaction-msg">"I love you. I always have."</div>
+        <div class="reaction-desc">She reads it twice. Then a third time. A smile she didn't expect, from words she needed to hear.</div>
+      </div>
+      <div class="reaction-card rc-friend fade-in fade-in-delay-2">
+        <div class="reaction-label">A Friend Gets Closure</div>
+        <span class="reaction-emoji">🕊️</span>
+        <div class="reaction-msg">"I'm sorry. I was wrong."</div>
+        <div class="reaction-desc">Three words that fix what months of silence couldn't. Relief washes over them both.</div>
+      </div>
+    </div>
+
+    <div class="s5-vo fade-in fade-in-delay-3">
+      <p class="vo-caption">
+        "Some truths don't need a name…<br>
+        <strong>They just need to be said.</strong>"
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ SCENE 6 – BRAND REVEAL ═══════════ -->
+<section class="scene" id="scene6">
+  <div class="scene-number" style="font-size:20rem;opacity:0.012;bottom:-60px;right:-20px;letter-spacing:-0.05em;">06</div>
+
+  <!-- deep ambient -->
+  <div class="orb" style="width:600px;height:600px;background:radial-gradient(circle,rgba(126,184,247,0.07),transparent);top:50%;left:50%;transform:translate(-50%,-50%);"></div>
+  <div class="orb" style="width:200px;height:200px;background:radial-gradient(circle,rgba(232,201,122,0.1),transparent);top:20%;right:15%;animation:breathe 5s ease-in-out infinite;"></div>
+
+  <div class="brand-reveal fade-in">
+    <p class="brand-eyebrow">Introducing</p>
+    <div class="main-logo">DoDispatch</div>
+    <div class="logo-line"></div>
+    <p class="main-tagline">
+      "<span>Say</span> what your heart couldn't."
+    </p>
+
+    <p class="final-cta">
+      Don't hold it<cta-period class="cta-period">.</cta-period><br>
+      Send it<span class="cta-period">.</span>
+    </p>
+
+    <div class="download-area fade-in fade-in-delay-2">
+      <div class="store-btn">
+        <span class="store-icon">📱</span>
+        <div class="store-text">
+          <span class="store-line1">Available on</span>
+          <span class="store-line2">App Store</span>
+        </div>
+      </div>
+      <div class="store-btn">
+        <span class="store-icon">🤖</span>
+        <div class="store-text">
+          <span class="store-line1">Get it on</span>
+          <span class="store-line2">Google Play</span>
+        </div>
+      </div>
+    </div>
+
+    <p style="margin-top:32px;font-size:11px;color:rgba(200,200,216,0.2);letter-spacing:0.15em;text-transform:uppercase;">
+      dodispatch.app &nbsp;·&nbsp; Your secret is safe &nbsp;·&nbsp; Always
+    </p>
+  </div>
+</section>
+
+<script>
+  // ══════════════════════════════════════════════
+  // CONFIG — change this to your backend URL
+  // ══════════════════════════════════════════════
+  const API = 'http://localhost:5000/api';
+
+  // ── State ────────────────────────────────────
+  let currentUser = null;
+  let isAnonymous = true;
+  let inboxOpen = false;
+
+  // ── API Helper ───────────────────────────────
+  async function apiFetch(endpoint, options = {}) {
+    const token = localStorage.getItem('dd_token');
+    const res = await fetch(API + endpoint, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': 'Bearer ' + token }),
+      },
+      ...options,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Request failed');
+    return data;
+  }
+
+  // ── Toast ────────────────────────────────────
+  function showToast(msg, type = '') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show ' + type;
+    setTimeout(() => { t.className = 'toast'; }, 3500);
+  }
+
+  // ── Auth State ───────────────────────────────
+  function loadUserFromStorage() {
+    const stored = localStorage.getItem('dd_user');
+    if (stored) {
+      currentUser = JSON.parse(stored);
+      updateUILoggedIn();
+    }
+  }
+
+  function updateUILoggedIn() {
+    if (!currentUser) return;
+    document.getElementById('authArea').style.display = 'none';
+    document.getElementById('userArea').style.display = 'block';
+    document.getElementById('inboxBtn').style.display = 'block';
+    const initial = (currentUser.display_name || currentUser.username || '?')[0].toUpperCase();
+    document.getElementById('topAvatar').textContent = initial;
+    document.getElementById('topUsername').textContent = '@' + currentUser.username;
+    fetchUnreadCount();
+  }
+
+  function updateUILoggedOut() {
+    currentUser = null;
+    document.getElementById('authArea').style.display = 'block';
+    document.getElementById('userArea').style.display = 'none';
+    document.getElementById('inboxBtn').style.display = 'none';
+    document.getElementById('unreadBadge').style.display = 'none';
+  }
+
+  async function fetchUnreadCount() {
+    if (!currentUser) return;
+    try {
+      const data = await apiFetch('/inbox?limit=1');
+      const count = data.unread_count || 0;
+      const badge = document.getElementById('unreadBadge');
+      const drawerBadge = document.getElementById('drawerUnreadBadge');
+      if (count > 0) {
+        badge.textContent = count;
+        badge.style.display = 'inline';
+        drawerBadge.textContent = count;
+        drawerBadge.style.display = 'inline';
+      } else {
+        badge.style.display = 'none';
+        drawerBadge.style.display = 'none';
+      }
+    } catch {}
+  }
+
+  // ── Auth Modal ───────────────────────────────
+  function openAuthModal(view) {
+    const modal = document.getElementById('authModal');
+    modal.classList.add('open');
+    if (view === 'profile' && currentUser) {
+      document.getElementById('loginForm').style.display = 'none';
+      document.getElementById('registerForm').style.display = 'none';
+      document.getElementById('authTabs') && (document.getElementById('authTabs').style.display = 'none');
+      document.getElementById('profilePanel').style.display = 'block';
+      document.getElementById('profileName').textContent = currentUser.display_name || currentUser.username;
+      document.getElementById('profileUsername').textContent = '@' + currentUser.username;
+      document.getElementById('profileAvatar').textContent = (currentUser.display_name || currentUser.username)[0].toUpperCase();
+      document.getElementById('shareLink').textContent = window.location.origin + '/send/' + currentUser.username;
+    } else {
+      switchTab('login');
+    }
+  }
+
+  function closeAuthModal() {
+    document.getElementById('authModal').classList.remove('open');
+  }
+
+  function switchTab(tab) {
+    document.getElementById('profilePanel').style.display = 'none';
+    document.querySelectorAll('.modal-tab').forEach((t, i) => {
+      t.classList.toggle('active', (i === 0 && tab === 'login') || (i === 1 && tab === 'register'));
+    });
+    document.getElementById('loginForm').style.display    = tab === 'login'    ? 'flex' : 'none';
+    document.getElementById('registerForm').style.display = tab === 'register' ? 'flex' : 'none';
+    clearErrors();
+  }
+
+  function clearErrors() {
+    ['loginError','registerError','sendError'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.textContent = ''; el.classList.remove('show'); }
+    });
+  }
+
+  function showError(id, msg) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.classList.add('show');
+  }
+
+  // ── Login ────────────────────────────────────
+  async function doLogin() {
+    const btn = document.getElementById('loginBtn');
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    clearErrors();
+    if (!email || !password) return showError('loginError', 'Please fill in all fields.');
+    btn.disabled = true;
+    btn.textContent = 'Signing in…';
+    try {
+      const data = await apiFetch('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+      localStorage.setItem('dd_token', data.token);
+      localStorage.setItem('dd_user', JSON.stringify(data.user));
+      currentUser = data.user;
+      updateUILoggedIn();
+      closeAuthModal();
+      showToast('Welcome back, ' + (data.user.display_name || data.user.username) + '! 👋', 'success');
+      loadInbox();
+    } catch (err) {
+      showError('loginError', err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Sign In';
+    }
+  }
+
+  // ── Register ─────────────────────────────────
+  async function doRegister() {
+    const btn = document.getElementById('registerBtn');
+    const username     = document.getElementById('regUsername').value.trim();
+    const display_name = document.getElementById('regDisplayName').value.trim();
+    const email        = document.getElementById('regEmail').value.trim();
+    const password     = document.getElementById('regPassword').value;
+    clearErrors();
+    if (!username || !email || !password) return showError('registerError', 'Please fill in all fields.');
+    if (password.length < 8) return showError('registerError', 'Password must be at least 8 characters.');
+    btn.disabled = true;
+    btn.textContent = 'Creating account…';
+    try {
+      const data = await apiFetch('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({ username, display_name, email, password }),
+      });
+      localStorage.setItem('dd_token', data.token);
+      localStorage.setItem('dd_user', JSON.stringify(data.user));
+      currentUser = data.user;
+      const ok = document.getElementById('registerSuccess');
+      ok.textContent = '✓ Account created! Check your email to verify.';
+      ok.classList.add('show');
+      setTimeout(() => {
+        updateUILoggedIn();
+        closeAuthModal();
+        showToast('Account created! Welcome, ' + (data.user.display_name || data.user.username) + ' 🎉', 'success');
+      }, 1500);
+    } catch (err) {
+      showError('registerError', err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Create Account';
+    }
+  }
+
+  // ── Logout ───────────────────────────────────
+  function doLogout() {
+    localStorage.removeItem('dd_token');
+    localStorage.removeItem('dd_user');
+    updateUILoggedOut();
+    closeAuthModal();
+    if (inboxOpen) toggleInbox();
+    showToast('Signed out. See you soon.');
+  }
+
+  // ── Send Message Modal ───────────────────────
+  function openSendModal(recipientUsername) {
+    document.getElementById('sendModal').classList.add('open');
+    if (recipientUsername) document.getElementById('sendRecipient').value = recipientUsername;
+    document.getElementById('sendContent').value = '';
+    document.getElementById('charCount').textContent = '0';
+    clearErrors();
+  }
+
+  function closeSendModal() {
+    document.getElementById('sendModal').classList.remove('open');
+  }
+
+  function updateCharCount() {
+    const len = document.getElementById('sendContent').value.length;
+    document.getElementById('charCount').textContent = len;
+  }
+
+  function toggleAnon() {
+    isAnonymous = !isAnonymous;
+    const pill = document.getElementById('anonToggle');
+    if (isAnonymous) {
+      pill.style.background = 'linear-gradient(90deg, var(--pulse), #a0c8ff)';
+      pill.style.boxShadow = '0 0 12px rgba(126,184,247,0.4)';
+    } else {
+      pill.style.background = 'rgba(255,255,255,0.1)';
+      pill.style.boxShadow = 'none';
+    }
+  }
+
+  async function doSendMessage() {
+    const btn = document.getElementById('sendMsgBtn');
+    const recipient_username = document.getElementById('sendRecipient').value.trim();
+    const content = document.getElementById('sendContent').value.trim();
+    const delivery_method = document.getElementById('deliveryMethod').value;
+    clearErrors();
+    if (!recipient_username) return showError('sendError', 'Please enter a recipient username.');
+    if (!content) return showError('sendError', 'Message cannot be empty.');
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+    try {
+      await apiFetch('/messages/send', {
+        method: 'POST',
+        body: JSON.stringify({ recipient_username, content, is_anonymous: isAnonymous, delivery_method }),
+      });
+      closeSendModal();
+      showToast('💌 Message sent anonymously!', 'success');
+      // Animate scene 4 send button
+      const sceneBtn = document.querySelector('.send-btn');
+      if (sceneBtn) {
+        const orig = sceneBtn.textContent;
+        sceneBtn.textContent = '✓ Sent!';
+        sceneBtn.style.background = 'linear-gradient(135deg, #50c080 0%, #308050 100%)';
+        setTimeout(() => {
+          sceneBtn.textContent = '↗ Send Anonymously';
+          sceneBtn.style.background = '';
+        }, 2500);
+      }
+    } catch (err) {
+      showError('sendError', err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '↗ Send Message';
+    }
+  }
+
+  // ── Inbox ────────────────────────────────────
+  function toggleInbox() {
+    inboxOpen = !inboxOpen;
+    document.getElementById('inboxDrawer').classList.toggle('open', inboxOpen);
+    if (inboxOpen && currentUser) loadInbox();
+  }
+
+  async function loadInbox() {
+    const list = document.getElementById('inboxList');
+    list.innerHTML = '<div class="inbox-empty"><div class="inbox-empty-icon">⏳</div>Loading…</div>';
+    try {
+      const data = await apiFetch('/inbox?limit=30');
+      const msgs = data.data || [];
+      if (!msgs.length) {
+        list.innerHTML = '<div class="inbox-empty"><div class="inbox-empty-icon">💌</div>No messages yet.<br><br>Share your profile link to receive anonymous messages.</div>';
+        return;
+      }
+      list.innerHTML = msgs.map(m => `
+        <div class="inbox-item ${!m.is_read ? 'unread' : ''}" onclick="markRead('${m.id}', this)">
+          <div class="inbox-item-sender">
+            <span class="anon-dot"></span>
+            ${m.is_anonymous ? 'Anonymous' : (m.sender_display || 'Someone')}
+          </div>
+          <div class="inbox-item-content">${escapeHtml(m.content)}</div>
+          <div class="inbox-item-time">${timeAgo(m.created_at)}</div>
+        </div>
+      `).join('');
+      fetchUnreadCount();
+    } catch (err) {
+      list.innerHTML = '<div class="inbox-empty"><div class="inbox-empty-icon">⚠️</div>' + err.message + '</div>';
+    }
+  }
+
+  async function markRead(id, el) {
+    el.classList.remove('unread');
+    try { await apiFetch('/inbox/' + id + '/read', { method: 'PATCH' }); } catch {}
+    fetchUnreadCount();
+  }
+
+  // ── Utilities ────────────────────────────────
+  function escapeHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function timeAgo(dateStr) {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const m = Math.floor(diff / 60000);
+    if (m < 1)  return 'just now';
+    if (m < 60) return m + 'm ago';
+    const h = Math.floor(m / 60);
+    if (h < 24) return h + 'h ago';
+    return Math.floor(h / 24) + 'd ago';
+  }
+
+  // ── Close modals on overlay click ────────────
+  document.getElementById('authModal').addEventListener('click', function(e) {
+    if (e.target === this) closeAuthModal();
+  });
+  document.getElementById('sendModal').addEventListener('click', function(e) {
+    if (e.target === this) closeSendModal();
+  });
+
+  // ── Scroll-triggered fade-ins ─────────────────
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.15 });
+  document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+  // ── Nav dot tracking ──────────────────────────
+  const scenes = document.querySelectorAll('.scene');
+  const dots   = document.querySelectorAll('.nav-dot');
+  const sceneObserver = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        const idx = Array.from(scenes).indexOf(e.target);
+        dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+      }
+    });
+  }, { threshold: 0.5 });
+  scenes.forEach(s => sceneObserver.observe(s));
+
+  function scrollToScene(idx) { scenes[idx].scrollIntoView({ behavior: 'smooth' }); }
+
+  // ── Typing animation (Scene 1) ────────────────
+  const typingMessages = ["I'm sorry…","I miss you…","I should have called.","You were right.","I still think of you.","I love you, Dad."];
+  let msgIdx = 0;
+  const typingEl = document.getElementById('typing-msg');
+  function cycleMessage() {
+    msgIdx = (msgIdx + 1) % typingMessages.length;
+    typingEl.style.opacity = '0';
+    setTimeout(() => {
+      typingEl.textContent = typingMessages[msgIdx];
+      typingEl.style.opacity = '1';
+      typingEl.style.transition = 'opacity 0.4s ease';
+    }, 300);
+  }
+  setInterval(cycleMessage, 3200);
+
+  // ── Compose message cycling (Scene 4) ─────────
+  const composeMessages = [
+    `"Thank you for always being there, even when I never said it…"`,
+    `"I've liked you since the first day we met."`,
+    `"I'm proud of you. I should have said it more."`,
+    `"Losing you was the hardest thing. I'm sorry."`,
+  ];
+  let composeIdx = 0;
+  const composeEl = document.getElementById('compose-display');
+  function cycleCompose() {
+    composeIdx = (composeIdx + 1) % composeMessages.length;
+    if (composeEl) {
+      composeEl.style.opacity = '0';
+      setTimeout(() => {
+        composeEl.textContent = composeMessages[composeIdx];
+        composeEl.style.opacity = '1';
+        composeEl.style.transition = 'opacity 0.6s ease';
+      }, 400);
+    }
+  }
+  setInterval(cycleCompose, 4000);
+
+  // ── Init ──────────────────────────────────────
+  loadUserFromStorage();
+
+  // Poll unread count every 30 seconds
+  setInterval(() => { if (currentUser) fetchUnreadCount(); }, 30000);
+</script>
+</body>
+</html>
